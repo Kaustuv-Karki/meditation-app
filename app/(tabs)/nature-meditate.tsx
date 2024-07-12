@@ -45,7 +45,6 @@ const Page = () => {
                   resizeMode="cover"
                   style={styles.backgroundImage}>
                   <LinearGradient
-                    // Gradient from transparent to black
                     colors={["transparent", "rgba(0,0,0,0.8)"]}
                     style={styles.gradient}>
                     <Text className="text-gray-100 text-3xl font-bold text-center">
