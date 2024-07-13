@@ -6,10 +6,14 @@ import { useLocalSearchParams, useRouter } from "expo-router";
 import { AntDesign } from "@expo/vector-icons";
 import CustomButton from "@/components/CustomButton";
 import { TimerContext } from "@/context/TimerContext";
+import { Audio } from "expo-av";
+import { MEDITATION_DATA, AUDIO_FILES } from "@/constants/meditation-data";
 
 const Meditate = () => {
   const { id } = useLocalSearchParams();
   const [isMeditating, setMeditating] = useState(false);
+  const [audioSound, setAudioSound] = useState<Audio.Sound>();
+  const [isPlaying, setPlaying] = useState(false);
 
   const { duration: secondsRemaining, setDuration } = useContext(TimerContext);
   const router = useRouter();
@@ -23,6 +27,7 @@ const Meditate = () => {
     let timerId: NodeJS.Timeout;
     if (secondsRemaining === 0) {
       setMeditating(false);
+      isPlaying && toggleSound();
       return;
     }
     if (isMeditating) {
@@ -35,8 +40,41 @@ const Meditate = () => {
     };
   }, [secondsRemaining, isMeditating]);
 
-  const toggleMeditationSessionStatus = () => {
+  useEffect(() => {
+    return () => {
+      audioSound?.unloadAsync();
+    };
+  }, [audioSound]);
+
+  const toggleMeditationSessionStatus = async () => {
     setMeditating(!isMeditating);
+    await toggleSound();
+  };
+
+  const toggleSound = async () => {
+    const sound = audioSound ? audioSound : await intializeSound();
+    const status = await sound?.getStatusAsync();
+    if (status?.isLoaded && !isPlaying) {
+      await sound?.playAsync();
+      setPlaying(true);
+    } else {
+      await sound?.pauseAsync();
+      setPlaying(false);
+    }
+  };
+
+  const intializeSound = async () => {
+    const audioFileName = MEDITATION_DATA[Number(id) - 1].audio;
+    const { sound } = await Audio.Sound.createAsync(AUDIO_FILES[audioFileName]);
+    setAudioSound(sound);
+    return sound;
+  };
+
+  const handleAdjustDuration = () => {
+    if (isMeditating) {
+      setMeditating(false);
+    }
+    router.push("/(modal)/adjust-meditation-duration");
   };
   return (
     <View className="flex-1">
@@ -60,7 +98,7 @@ const Meditate = () => {
           <View className="mb-5">
             <CustomButton
               title="Adjust duration"
-              // onPress={handleAdjustDuration}
+              onPress={handleAdjustDuration}
             />
             <CustomButton
               title={isMeditating ? "Stop" : "Start Meditation"}
